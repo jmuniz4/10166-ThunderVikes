@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
@@ -16,8 +17,11 @@ import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkLowLevel;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig;
+import com.revrobotics.AbsoluteEncoder;
+import com.revrobotics.RelativeEncoder;
 
 import edu.wpi.first.util.sendable.SendableRegistry;
+import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.TimedRobot;
 
@@ -37,16 +41,20 @@ private DifferentialDrive m_myRobot;
 
 
  // int leftMotor = 3; // this is the motor CAN ID 
-  int diff_drive_right_motor_canID = 2; //this is the motor CAN ID 
-  int diff_drive_left_motor_canID = 3;
+  int diff_drive_motor_canID_right = 2; //this is the motor CAN ID 
+  int diff_drive_motor_canID_left = 3;
+  int elevator_motor_canID_left = 4;
 
-  public SparkMax chassis_motor_left = new SparkMax(diff_drive_left_motor_canID, SparkLowLevel.MotorType.kBrushed); // 0 is the RIO PWM port this is connected to
-  public SparkMax chassis_motor_right = new SparkMax(diff_drive_right_motor_canID, SparkLowLevel.MotorType.kBrushed);
+  public SparkMax chassis_motor_left = new SparkMax(diff_drive_motor_canID_left, SparkLowLevel.MotorType.kBrushed); // 0 is the RIO PWM port this is connected to
+  public SparkMax chassis_motor_right = new SparkMax(diff_drive_motor_canID_right, SparkLowLevel.MotorType.kBrushed);
+  public SparkMax elevat_motor_left = new SparkMax(elevator_motor_canID_left, SparkLowLevel.MotorType.kBrushless);  
+  public RelativeEncoder elevatorEncoder = elevat_motor_left.getEncoder();
 
 
-  private Joystick chassis_stick_left;
+  private XboxController controller;
   private Joystick chassis_stick_right;
 
+  public boolean B_button; 
 
 
   private final RobotContainer m_robotContainer;
@@ -55,37 +63,24 @@ private DifferentialDrive m_myRobot;
        * This function is run when the robot is first started up and should be used for any
        * initialization code.
        */
+      @SuppressWarnings("deprecation")
       public Robot() {
-        // this is to test the motor controllers 
-//SendableRegistry.addChild(m_robotDrive, LMspark);
-       // SendableRegistry.addChild(m_robotDrive,  RMspark);
+        
      // We need to invert one side of the drivetrain so that positive voltages
         // result in both sides moving forward. Depending on how your robot's
-        // gearbox is constructed, you might have to invert the left side instead.
-       // RMspark.setInverted(true);
-        // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
-        // autonomous chooser on the dashboard.
-m_myRobot = new DifferentialDrive(chassis_motor_left, chassis_motor_right);
-//       chassis_motor_left.configure(SparkBaseConfig, SparkBase.ResetMode, SparkBase.PersistMode);
-
-chassis_stick_left = new Joystick(0);
-//chassis_stick_right = new Joystick(1);
-
-
+  
+        
+        m_myRobot = new DifferentialDrive(chassis_motor_left, chassis_motor_right);
+        //       chassis_motor_left.configure(SparkBaseConfig, SparkBase.ResetMode, SparkBase.PersistMode);
+        
+        controller = new XboxController(0);
+        //chassis_stick_right = new Joystick(1);
+       
+        chassis_motor_right.setInverted(true);
         m_robotContainer = new RobotContainer();
       }
    
-    /* private Spark SparkMax(int canID, MotorType motorType) {
-        // TODO Auto-generated method stub
-        Spark motor = new SparkMax (canID, motorType);
-        
-        SparkBaseConfig config = new SparkBaseConfig();
-        config.inverted(false);
-        
-        motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
-
-        return motor;
-      } */
+    
   
     /**
    * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
@@ -113,12 +108,8 @@ chassis_stick_left = new Joystick(0);
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
   public void autonomousInit() {
-    m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
-    // schedule the autonomous command (example)
-    if (m_autonomousCommand != null) {
-      m_autonomousCommand.schedule();
-    }
+  
   }
 
   /** This function is called periodically during autonomous. */
@@ -144,8 +135,15 @@ chassis_stick_left = new Joystick(0);
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
-   m_myRobot.arcadeDrive(chassis_stick_left.getY(), chassis_stick_left.getX());
-   
+   m_myRobot.arcadeDrive(controller.getLeftY(), controller.getLeftX());
+   SmartDashboard.putNumber("encoder position",elevatorEncoder.getPosition());
+   SmartDashboard.putNumber("encoder velocity",elevatorEncoder.getVelocity());
+
+   if(controller.getAButtonPressed()){
+    elevat_motor_left.set(0.5);
+   }else if(controller.getAButtonReleased()){
+    elevat_motor_left.set(0);
+   }
 
 
   }
